@@ -7,11 +7,9 @@ Usage: python build.py RAW_DIR MD_DIR OUT_DIR
 """
 import hashlib
 import html
-import json
 import re
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -205,7 +203,7 @@ def tidy(content):
     return content
 
 
-def shell(title, body, depth, current, note):
+def shell(title, body, depth, current):
     up = "../" * depth
     nav = "".join(
         f'<a href="{page_href(p, depth)}"{" aria-current=page" if p == current else ""}>{PAGES[p][1]}</a>'
@@ -225,14 +223,9 @@ def shell(title, body, depth, current, note):
   <nav aria-label="Years">{nav}</nav>
 </header>
 <main>
-{f'<p class="note">{note}</p>' if note else ''}
 <h1>{html.escape(title)}</h1>
 {body}
 </main>
-<footer>
-  Archive of the CEMS pages formerly hosted on the University of Pennsylvania Computational Memory Lab wiki
-  (memory.psych.upenn.edu). Hotel, registration and travel links are kept as they were and may no longer work.
-</footer>
 </body>
 </html>
 """
@@ -256,13 +249,12 @@ episodic memory, broadly construed.</p>
 <h2>Past symposia</h2>
 <ul class="years">{''.join(reversed(rows))}</ul>
 """
-    (out / "index.html").write_text(shell("Context and Episodic Memory Symposium", body, 0, "CEMS", None))
+    (out / "index.html").write_text(shell("Context and Episodic Memory Symposium", body, 0, "CEMS"))
 
 
 def main(raw_dir, md_dir, out_dir):
     raw, md, out = Path(raw_dir), Path(md_dir), Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    snaps = json.loads((raw / "pages.json").read_text())
     assets = Assets(raw / "assets", out)
     for page, (slug, _) in PAGES.items():
         if page == "CEMS":
@@ -271,23 +263,16 @@ def main(raw_dir, md_dir, out_dir):
         depth = 1
         title = page.replace("_", " ").replace("MBC2023", "MBC 2023").replace("registration", "Registration")
         src = raw / f"{page}.html"
-        original = f"{HOST}/{page}"
         if src.exists():
             content = from_wayback(src.read_bytes())
-            when = datetime.strptime(snaps[page][:8], "%Y%m%d").strftime("%B %-d, %Y")
-            note = (f'Archived page, originally at {original}. Recovered from the '
-                    f'<a href="https://web.archive.org/web/{snaps[page]}/{SITE}/{page}" rel="noopener">'
-                    f'Internet Archive copy of {when}</a>.')
         else:
             content = from_markdown((md / f"{page.replace('_', ' ')}.md").read_text())
-            note = (f"Archived page, originally at {original}. Recovered from the lab's export of its wiki; "
-                    f"some photos and maps on the original page could not be recovered.")
         rewrite(content, assets, depth)
         tidy(content)
         body = "".join(str(c) for c in content.contents)
         d = out / slug
         d.mkdir(exist_ok=True)
-        (d / "index.html").write_text(shell(title, body, depth, page, note))
+        (d / "index.html").write_text(shell(title, body, depth, page))
     build_index(out)
     print("missing assets:", sorted(assets.missing) or "none")
 
