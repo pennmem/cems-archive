@@ -218,7 +218,7 @@ def shell(title, body, depth, current):
 </head>
 <body>
 <header class="site">
-  <a class="brand" href="{up or './'}">CEMS <span>Archive</span></a>
+  <a class="brand" href="{up or './'}">CEMS</a>
   <p class="tag">Context and Episodic Memory Symposium, 2002–2026</p>
   <nav aria-label="Years">{nav}</nav>
 </header>
